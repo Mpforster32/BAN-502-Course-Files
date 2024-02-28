@@ -1,0 +1,148 @@
+```{r read libraries}
+library(readr)
+library(tidyverse)
+library(skimr)
+library(dplyr)
+library(mice) #package for imputation
+library(GGally)
+library(gridExtra)
+```
+```{r read training data}
+train <- read_csv("train.csv")
+```
+```{r structure and summary}
+str(train)
+summary(train)
+skim(train)
+```
+
+```{r clean data}
+# Remove ID for analysis
+train_clean <- train %>% select(!(id))
+train_analysis <- train_clean %>% mutate(product_code = as_factor(product_code)) %>%
+  mutate(attribute_0 = as_factor(attribute_0)) %>%
+  mutate(attribute_0 = fct_recode(attribute_0, "material_5" = "5", "material_7" = "7" )) %>%
+  mutate(attribute_1 = as_factor(attribute_1)) %>%
+  mutate(attribute_1 = fct_recode(attribute_1, "material_5" = "5", "material_6" = "6", "material_8" = "8" )) %>%
+  mutate(failure = as_factor(failure)) %>%
+  mutate(failure = fct_recode(failure, "No" = "0", "Yes" = "1" ))
+
+set.seed(1234) #sets seed for random number generator
+imp_age = mice(train_analysis, m=5, method='pmm', printFlag=FALSE)
+#m is the number of imputations, 5 is a reasonable value as a default
+#pmm is "predictive mean matching" = imputation method for numeric data
+#printFlag reduces amount of output
+summary(imp_age)
+
+train_clean_complete <- complete(imp_age) 
+summary(train_clean_complete)
+```
+```{r}
+skim(train_clean_complete)
+```
+
+```{r Descriptive Statistics - means and summary data}
+sapply(train_clean_complete,mean)
+mean(train_clean_complete)
+summary(train_clean_complete)
+```
+
+```{r Seeing if any Product is showing more failure than others}
+ggplot(train_clean_complete, aes(x = product_code, fill = failure)) +
+  geom_bar(position = position_dodge(width = 0.7)) +
+  labs(x = "Product Code", y = "Count of Failure", fill = "Failure") +
+  theme_minimal() +
+  scale_fill_manual(values = c("No" = "blue", "Yes" = "red")) + # Ensure these are the correct level names
+  geom_text(stat='count', aes(label=after_stat(count)), position=position_dodge(width = 0.7), vjust=-0.25)
+```
+
+
+```{r}
+train_test = select(train_clean_complete, loading, failure, measurement_0, measurement_1, measurement_2, measurement_3, measurement_4, measurement_5, measurement_6, measurement_7, measurement_8, measurement_9, measurement_10, measurement_11, measurement_12, measurement_13, measurement_14, measurement_15, measurement_16, measurement_17)
+```
+
+```{r}
+# Example of increasing text size and adjusting labels
+ggp <- ggpairs(train_test,
+               mapping = aes(color = failure),
+               title = "Measurements Effect on Failure",
+               upper = list(continuous = "points", combo = "box_no_facet"),
+               lower = list(continuous = "points", combo = "dot_no_facet"),
+               diag = list(continuous = "barDiag"),
+               axisLabels = 'show',
+               labeller = label_wrap_gen(10)) +  # Wrap labels at 10 characters
+  theme(text = element_text(size = 9),  # Adjust text size
+        axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x-axis text
+
+# Print the plot
+print(ggp)
+
+# Save the plot with custom dimensions
+ggsave("measurements_failure_relationship_large.png", plot = ggp, width = 20, height = 20, dpi = 300)
+
+```
+
+```{r}
+#train_analysis <- train_analysis %>% mutate(product_code = as.numeric(product_code)) %>%
+#  mutate(attribute_0 = as.numeric(attribute_0)) %>%
+#  mutate(attribute_1 = as.numeric(attribute_1)) %>%
+#  mutate(failure = as.numeric(failure))
+```
+
+```{r}
+p1 = ggplot(train_clean_complete, aes(x=attribute_0,fill=failure)) + geom_bar(position = "fill") + ylim(0, 0.3)
+p2 = ggplot(train_clean_complete, aes(x=attribute_1,fill=failure)) + geom_bar(position = "fill") + ylim(0, 0.3)
+p3 = ggplot(train_clean_complete, aes(x=attribute_2,fill=failure)) + geom_bar(position = "fill") + ylim(0, 0.3)
+p4 = ggplot(train_clean_complete, aes(x=attribute_3,fill=failure)) + geom_bar(position = "fill") + ylim(0, 0.3)
+p5 = ggplot(train_clean_complete, aes(x=product_code,fill=failure)) + geom_bar(position = "fill") + ylim(0, 0.3)
+p6 = ggplot(train_clean_complete, aes(x=loading,y=failure)) + geom_boxplot()
+grid.arrange(p1,p2,p3,p4,p5,p6)
+```
+```{r}
+p1 = ggplot(train_clean_complete, aes(x=measurement_0,y=failure)) + geom_boxplot()
+p2 = ggplot(train_clean_complete, aes(x=measurement_1,y=failure)) + geom_boxplot()
+p3 = ggplot(train_clean_complete, aes(x=measurement_2,y=failure)) + geom_boxplot()
+p4 = ggplot(train_clean_complete, aes(x=measurement_3,y=failure)) + geom_boxplot()
+p5 = ggplot(train_clean_complete, aes(x=measurement_4,y=failure)) + geom_boxplot()
+p6 = ggplot(train_clean_complete, aes(x=measurement_5,y=failure)) + geom_boxplot()
+p7 = ggplot(train_clean_complete, aes(x=measurement_6,y=failure)) + geom_boxplot()
+p8 = ggplot(train_clean_complete, aes(x=measurement_7,y=failure)) + geom_boxplot()
+p9 = ggplot(train_clean_complete, aes(x=measurement_8,y=failure)) + geom_boxplot()
+p10 = ggplot(train_clean_complete, aes(x=measurement_9,y=failure)) + geom_boxplot()
+p11 = ggplot(train_clean_complete, aes(x=measurement_10,y=failure)) + geom_boxplot()
+p12 = ggplot(train_clean_complete, aes(x=measurement_11,y=failure)) + geom_boxplot()
+p13 = ggplot(train_clean_complete, aes(x=measurement_12,y=failure)) + geom_boxplot()
+p14 = ggplot(train_clean_complete, aes(x=measurement_13,y=failure)) + geom_boxplot()
+p15 = ggplot(train_clean_complete, aes(x=measurement_14,y=failure)) + geom_boxplot()
+p16 = ggplot(train_clean_complete, aes(x=measurement_15,y=failure)) + geom_boxplot()
+p17 = ggplot(train_clean_complete, aes(x=measurement_16,y=failure)) + geom_boxplot()
+p18 = ggplot(train_clean_complete, aes(x=measurement_17,y=failure)) + geom_boxplot()
+grid.arrange(p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11,p12,p13,p14,p15,p16,p17,p18)
+```
+```{r}
+p1 = ggplot(train_clean_complete, aes(x=measurement_0,y=failure)) + geom_point(alpha=0.1)
+p2 = ggplot(train_clean_complete, aes(x=measurement_1,y=failure)) + geom_point(alpha=0.1)
+p3 = ggplot(train_clean_complete, aes(x=measurement_2,y=failure)) + geom_point(alpha=0.1)
+p4 = ggplot(train_clean_complete, aes(x=measurement_3,y=failure)) + geom_point(alpha=0.1)
+p5 = ggplot(train_clean_complete, aes(x=measurement_4,y=failure)) + geom_point(alpha=0.1)
+p6 = ggplot(train_clean_complete, aes(x=measurement_5,y=failure)) + geom_point(alpha=0.1)
+p7 = ggplot(train_clean_complete, aes(x=measurement_6,y=failure)) + geom_point(alpha=0.1)
+p8 = ggplot(train_clean_complete, aes(x=measurement_7,y=failure)) + geom_point(alpha=0.1)
+p9 = ggplot(train_clean_complete, aes(x=measurement_8,y=failure)) + geom_point(alpha=0.1)
+p10 = ggplot(train_clean_complete, aes(x=measurement_9,y=failure)) + geom_point(alpha=0.1)
+p11 = ggplot(train_clean_complete, aes(x=measurement_10,y=failure)) + geom_point(alpha=0.1)
+p12 = ggplot(train_clean_complete, aes(x=measurement_11,y=failure)) + geom_point(alpha=0.1)
+p13 = ggplot(train_clean_complete, aes(x=measurement_12,y=failure)) + geom_point(alpha=0.1)
+p14 = ggplot(train_clean_complete, aes(x=measurement_13,y=failure)) + geom_point(alpha=0.1)
+p15 = ggplot(train_clean_complete, aes(x=measurement_14,y=failure)) + geom_point(alpha=0.1)
+p16 = ggplot(train_clean_complete, aes(x=measurement_15,y=failure)) + geom_point(alpha=0.1)
+p17 = ggplot(train_clean_complete, aes(x=measurement_16,y=failure)) + geom_point(alpha=0.1)
+p18 = ggplot(train_clean_complete, aes(x=measurement_17,y=failure)) + geom_point(alpha=0.1)
+grid.arrange(p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11,p12,p13,p14,p15,p16,p17,p18)
+```
+
+```{r Correlations and Covariance}
+cor(train_analysis,use="complete.obs",method="pearson")
+
+cov(train_analysis,use="complete.obs",method="pearson")
+```
